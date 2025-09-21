@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from arthasutra.db.session import create_db_and_tables
 from arthasutra.api.routers.portfolios import router as portfolios_router
+from arthasutra.api.routers.data import router as data_router
 
 
 def _get_cors_origins() -> list[str]:
@@ -39,3 +40,4 @@ def healthz() -> dict:
 
 
 app.include_router(portfolios_router, prefix="/portfolios", tags=["portfolios"])
+app.include_router(data_router, prefix="/data", tags=["data"])

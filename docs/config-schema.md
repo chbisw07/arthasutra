@@ -69,3 +69,15 @@ Open Questions
 
 - Do we want per‑symbol overrides for overlay aggression in MVP or later?
 
+Unified CSV Schema (positions)
+
+- Canonical columns: `symbol` (e.g., HDFCBANK), `exchange` (e.g., NSE), `qty`, `avg_price`, optional `sector`, optional `name`, optional `ltp`.
+- Header aliases accepted by importer:
+  - symbol: `symbol`, `Symbol`, `Ticker`, `Instrument`
+  - qty: `qty`, `Qty.`, `quantity`, `Quantity`, `Shares`
+  - avg_price: `avg_price`, `Avg. cost`, `Avg Buy Price (Rs.)`
+  - ltp: `LTP`, `Current Price (Rs.)`
+  - sector: `sector`, `Sector`
+  - name: `name`, `Name`
+- Numbers may contain commas or `%`; negatives in parentheses are handled.
+- If `exchange` missing, defaults to `NSE`. If `ltp` present, a synthetic EOD row for today is seeded.

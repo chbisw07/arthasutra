@@ -24,6 +24,11 @@ REST Endpoints (high‑level)
 - POST /orders/cancel — cancel order
 - GET /orders/status/{id} — track status
 
+Data Import
+
+- POST /data/prices-eod/import-csv — bulk import historical EOD prices (symbol, exchange, date, open, high, low, close, volume)
+- POST /data/prices-eod/yf?symbols=NSE:HDFCBANK,BSE:BSE&start=YYYY-MM-DD&end=YYYY-MM-DD — fetch EOD from Yahoo Finance and persist
+
 WebSocket
 
 - /ws/alerts — push band hits, risk breaches, earnings reminders
@@ -44,4 +49,3 @@ Deliverables & Acceptance
 Open Questions
 
 - Pagination and filtering defaults for list endpoints (e.g., positions, alerts).
-

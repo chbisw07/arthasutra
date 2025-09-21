@@ -14,6 +14,8 @@ from arthasutra.db.models import (
     PriceEOD,
 )
 from arthasutra.db.session import get_session
+from arthasutra.services.analytics import portfolio_equity_and_pnl, compute_position_stats
+from arthasutra.services.decision_engine import propose_actions
 from arthasutra.services.csv_importer import parse_positions_csv
 
 
@@ -32,6 +34,8 @@ class PositionItem(BaseModel):
     qty: float
     avg_price: float
     last_price: float
+    prev_close: float | None = None
+    pct_today: float | None = None
     pnl_inr: float
 
 
@@ -65,6 +69,8 @@ def import_csv(
 
     rows = parse_positions_csv(file.file)
     # Upsert securities and set holdings to CSV snapshot; create a lot per row
+    from datetime import date as _date
+    today = _date.today()
     for r in rows:
         symbol = r.symbol
         exchange = r.exchange
@@ -76,9 +82,15 @@ def import_csv(
             select(Security).where(Security.symbol == symbol, Security.exchange == exchange)
         ).first()
         if not sec:
-            sec = Security(symbol=symbol, exchange=exchange, name=symbol, sector=sector)
+            sec = Security(symbol=symbol, exchange=exchange, name=r.name or symbol, sector=sector)
             session.add(sec)
             session.flush()
+        else:
+            # Update security details if provided
+            if r.name and not sec.name:
+                sec.name = r.name
+            if sector and not sec.sector:
+                sec.sector = sector
 
         holding = session.exec(
             select(Holding).where(Holding.portfolio_id == portfolio_id, Holding.security_id == sec.id)
@@ -95,6 +107,15 @@ def import_csv(
         lot = Lot(holding_id=holding.id, qty=qty, price=avg_price, account="main", tax_status="unknown")
         session.add(lot)
 
+        # If LTP is present, seed a PriceEOD for today if missing to enable immediate KPIs
+        if r.ltp is not None:
+            exists = session.exec(
+                select(PriceEOD).where(PriceEOD.security_id == sec.id, PriceEOD.date == today)
+            ).first()
+            if not exists:
+                pe = PriceEOD(security_id=sec.id, date=today, open=r.ltp, high=r.ltp, low=r.ltp, close=r.ltp)
+                session.add(pe)
+
     session.commit()
     return {"status": "ok", "rows": len(rows)}
 
@@ -106,35 +127,22 @@ def get_dashboard(portfolio_id: int, session: Session = Depends(get_session)) ->
         raise HTTPException(status_code=404, detail="Portfolio not found")
 
     holdings = session.exec(select(Holding).where(Holding.portfolio_id == portfolio_id)).all()
-
     positions: list[PositionItem] = []
-    total_equity = 0.0
-    total_pnl = 0.0
-
+    total_equity, total_pnl = portfolio_equity_and_pnl(session, portfolio_id)
     for h in holdings:
-        sec: Optional[Security] = session.get(Security, h.security_id)
-        if not sec:
-            # Skip inconsistent rows
+        stats = compute_position_stats(session, h)
+        if not stats:
             continue
-        # Latest EOD price if present
-        latest: Optional[PriceEOD] = session.exec(
-            select(PriceEOD)
-            .where(PriceEOD.security_id == sec.id)
-            .order_by(PriceEOD.date.desc())
-        ).first()
-        last_price = float(latest.close) if latest else float(h.avg_price)
-        pnl = float(h.qty_total) * (last_price - float(h.avg_price))
-        equity = float(h.qty_total) * last_price
-        total_equity += equity
-        total_pnl += pnl
         positions.append(
             PositionItem(
-                symbol=sec.symbol,
-                exchange=sec.exchange,
-                qty=float(h.qty_total),
-                avg_price=float(h.avg_price),
-                last_price=last_price,
-                pnl_inr=pnl,
+                symbol=stats.symbol,
+                exchange=stats.exchange,
+                qty=stats.qty,
+                avg_price=stats.avg_price,
+                last_price=stats.last_price,
+                prev_close=stats.prev_close,
+                pct_today=stats.pct_today,
+                pnl_inr=stats.pnl_inr,
             )
         )
 
@@ -144,5 +152,31 @@ def get_dashboard(portfolio_id: int, session: Session = Depends(get_session)) ->
         equity_value=total_equity,
         pnl_inr=total_pnl,
         positions=positions,
-        actions=[],
+        actions=propose_actions(session, portfolio_id),
     )
+
+
+@router.get("/{portfolio_id}/positions", response_model=list[PositionItem])
+def list_positions(portfolio_id: int, session: Session = Depends(get_session)) -> list[PositionItem]:
+    portfolio = session.get(Portfolio, portfolio_id)
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    items: list[PositionItem] = []
+    holdings = session.exec(select(Holding).where(Holding.portfolio_id == portfolio_id)).all()
+    for h in holdings:
+        stats = compute_position_stats(session, h)
+        if not stats:
+            continue
+        items.append(
+            PositionItem(
+                symbol=stats.symbol,
+                exchange=stats.exchange,
+                qty=stats.qty,
+                avg_price=stats.avg_price,
+                last_price=stats.last_price,
+                prev_close=stats.prev_close,
+                pct_today=stats.pct_today,
+                pnl_inr=stats.pnl_inr,
+            )
+        )
+    return items

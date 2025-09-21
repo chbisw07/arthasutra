@@ -10,12 +10,12 @@ Scope
 
 Logic (v1)
 
-- Composite Score: 0.4*Q + 0.4*T + 0.2*V
-- Rules → Actions:
-  - EXIT: score < 40 and <200DMA and EPS_rev_neg (or stop hit)
-  - TRIM: overweight vs target or extended vs 50DMA with momentum fading
-  - ADD: score > 70, underweight, budget ok, liquidity ok
-  - KEEP: otherwise
+- Composite Score: placeholder trend‑based score using 50/200 SMA.
+- Rules → Actions (implemented minimal):
+  - EXIT: below 200SMA and score low.
+  - TRIM: last close > 1.08 × 50SMA (extended).
+  - ADD: above 50SMA with healthy score.
+  - KEEP: otherwise or insufficient history.
 - Sizing: Qty = risk_budget / stop_distance(ATR), bounded by capital & max_position%
 
 Decisions (final)
@@ -35,4 +35,3 @@ Deliverables & Acceptance
 Open Questions
 
 - Final default thresholds for momentum/fade and liquidity cutoffs.
-

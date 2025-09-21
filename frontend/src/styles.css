@@ -1,0 +1,5 @@
+html, body, #root { height: 100%; }
+* { box-sizing: border-box; }
+.container { padding: 16px; }
+.section { margin-top: 16px; }
+
