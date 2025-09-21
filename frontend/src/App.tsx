@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AppBar, Box, Button, Container, Stack, TextField, Toolbar, Typography, Paper, Grid, Alert, LinearProgress, FormControl, InputLabel, Select, MenuItem } from '@mui/material'
+import { AppBar, Box, Button, Container, Stack, TextField, Toolbar, Typography, Paper, Grid, Alert, LinearProgress, FormControl, InputLabel, Select, MenuItem, Snackbar } from '@mui/material'
 import { createPortfolio, deletePortfolio, getDashboard, getPortfolios, getPositions, importEodCSV, importEodYf, importHoldingsCSV, type Dashboard, type Portfolio } from './api/client'
 import PositionTable from './components/PositionTable'
 import ActionInbox from './components/ActionInbox'
@@ -16,6 +16,20 @@ export default function App() {
   const [seedDone, setSeedDone] = useState(0)
   const [seedTotal, setSeedTotal] = useState(0)
   const [portfolios, setPortfolios] = useState<Portfolio[]>([])
+  const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' | 'warning' }>({ open: false, message: '', severity: 'success' })
+
+  const notify = (message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'success') => setSnack({ open: true, message, severity })
+  const closeSnack = () => setSnack((s) => ({ ...s, open: false }))
+
+  // Format helpers (Indian numbering)
+  const fmtINR = (n: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n)
+  const fmtNum = (n: number) => new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(n)
+  const fmtPct = (n: number) => `${n.toFixed(2)}%`
+
+  const investedValue = (dash: Dashboard | null): number => {
+    if (!dash?.positions) return 0
+    return dash.positions.reduce((acc, p) => acc + p.qty * p.avg_price, 0)
+  }
 
   const canQuery = useMemo(() => portfolioId != null, [portfolioId])
 
@@ -59,8 +73,11 @@ export default function App() {
       const pf = await createPortfolio(portfolioName || 'Portfolio')
       setPortfolioId(pf.id)
       setPortfolios(await getPortfolios())
+      notify('Portfolio created', 'success')
     } catch (e: any) {
-      setError(e?.message || 'Failed to create portfolio')
+      const msg = e?.message || 'Failed to create portfolio'
+      setError(msg)
+      notify(msg, 'error')
     } finally {
       setLoading(false)
     }
@@ -79,8 +96,11 @@ export default function App() {
         localStorage.removeItem('arthasutra.portfolioId')
         setDashboard(null)
       }
+      notify('Portfolio deleted', 'success')
     } catch (e: any) {
-      setError(e?.message || 'Failed to delete portfolio')
+      const msg = e?.message || 'Failed to delete portfolio'
+      setError(msg)
+      notify(msg, 'error')
     }
   }
 
@@ -90,10 +110,13 @@ export default function App() {
     setLoading(true)
     setError(null)
     try {
-      await importHoldingsCSV(portfolioId, file)
+      const res = await importHoldingsCSV(portfolioId, file)
       await refresh()
+      notify(`Imported holdings (${res?.rows ?? 'OK'})`, 'success')
     } catch (e: any) {
-      setError(e?.message || 'Failed to import holdings')
+      const msg = e?.message || 'Failed to import holdings'
+      setError(msg)
+      notify(msg, 'error')
     } finally {
       setLoading(false)
       ev.target.value = ''
@@ -106,10 +129,13 @@ export default function App() {
     setLoading(true)
     setError(null)
     try {
-      await importEodCSV(file)
+      const res = await importEodCSV(file)
       await refresh()
+      notify(`Imported EOD prices (${res?.rows ?? 'OK'})`, 'success')
     } catch (e: any) {
-      setError(e?.message || 'Failed to import EOD prices')
+      const msg = e?.message || 'Failed to import EOD prices'
+      setError(msg)
+      notify(msg, 'error')
     } finally {
       setLoading(false)
       ev.target.value = ''
@@ -153,17 +179,27 @@ export default function App() {
       }
       await refresh()
     } catch (e: any) {
-      setError(e?.message || 'Failed to seed demo data')
+      const msg = e?.message || 'Failed to seed demo data'
+      setError(msg)
+      notify(msg, 'error')
     } finally {
       setLoading(false)
       setSeeding(false)
+      notify(`Seeding complete (${seedDone}/${seedTotal})`, 'success')
     }
   }
 
   async function onMapperImport(mapped: File) {
     if (!portfolioId) return
-    await importHoldingsCSV(portfolioId, mapped)
-    await refresh()
+    try {
+      const res = await importHoldingsCSV(portfolioId, mapped)
+      await refresh()
+      notify(`Imported holdings (${res?.rows ?? 'OK'})`, 'success')
+    } catch (e: any) {
+      const msg = e?.message || 'Failed to import holdings via mapper'
+      setError(msg)
+      notify(msg, 'error')
+    }
   }
 
   return (<>
@@ -195,7 +231,7 @@ export default function App() {
               </FormControl>
               <TextField label="New Portfolio Name" size="small" value={portfolioName} onChange={(e) => setPortfolioName(e.target.value)} />
               <Button variant="contained" onClick={onCreatePortfolio} disabled={loading}>Create</Button>
-              <Button color="error" onClick={onDeletePortfolio} disabled={!portfolioId}>Delete</Button>
+              <Button color="error" onClick={onDeletePortfolio} disabled={!portfolioId || loading || seeding}>Delete</Button>
               {portfolioId && <Typography variant="body2">Current ID: {portfolioId}</Typography>}
             </Stack>
           </Paper>
@@ -236,7 +272,15 @@ export default function App() {
               </Grid>
               <Paper sx={{ p: 2, mt: 2 }}>
                 <Typography variant="subtitle1">KPIs</Typography>
-                <Typography variant="body2">Equity: ₹{dashboard.equity_value.toFixed(2)} · PnL: ₹{dashboard.pnl_inr.toFixed(2)}</Typography>
+                <Typography variant="body2">
+                  Equity: {fmtINR(dashboard.equity_value)} · PnL: {fmtINR(dashboard.pnl_inr)} · PnL %: {
+                    (() => {
+                      const inv = investedValue(dashboard)
+                      const pct = inv > 0 ? (dashboard.pnl_inr / inv) * 100 : 0
+                      return fmtPct(pct)
+                    })()
+                  }
+                </Typography>
               </Paper>
             </>
           )}
@@ -244,5 +288,15 @@ export default function App() {
       </Container>
     </Box>
     <ColumnMapperDialog open={mapperOpen} onClose={() => setMapperOpen(false)} onImport={onMapperImport} />
+    <Snackbar
+      open={snack.open}
+      autoHideDuration={3000}
+      onClose={closeSnack}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+    >
+      <Alert onClose={closeSnack} severity={snack.severity} variant="filled" sx={{ width: '100%' }}>
+        {snack.message}
+      </Alert>
+    </Snackbar>
   </>)
 }

@@ -47,25 +47,28 @@ export async function deletePortfolio(id: number): Promise<void> {
   await api.delete(`/portfolios/${id}`)
 }
 
-export async function importHoldingsCSV(portfolioId: number, file: File) {
+export async function importHoldingsCSV(portfolioId: number, file: File): Promise<{ status: string; rows: number }> {
   const form = new FormData()
   form.append('file', file)
-  await api.post(`/portfolios/${portfolioId}/import-csv`, form, {
+  const res = await api.post(`/portfolios/${portfolioId}/import-csv`, form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
+  return res.data
 }
 
-export async function importEodCSV(file: File) {
+export async function importEodCSV(file: File): Promise<{ status: string; rows: number }> {
   const form = new FormData()
   form.append('file', file)
-  await api.post(`/data/prices-eod/import-csv`, form, {
+  const res = await api.post(`/data/prices-eod/import-csv`, form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
+  return res.data
 }
 
-export async function importEodYf(symbolTokens: string[], start: string, end: string) {
+export async function importEodYf(symbolTokens: string[], start: string, end: string): Promise<{ status: string; rows: number }> {
   const params = { symbols: symbolTokens.join(','), start, end }
-  await api.post(`/data/prices-eod/yf`, null, { params })
+  const res = await api.post(`/data/prices-eod/yf`, null, { params })
+  return res.data
 }
 
 export async function getDashboard(portfolioId: number): Promise<Dashboard> {

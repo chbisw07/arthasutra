@@ -2,6 +2,9 @@ import { Table, TableBody, TableCell, TableHead, TableRow, Paper, Typography } f
 import type { PositionItem } from '../api/client'
 
 export default function PositionTable({ positions }: { positions: PositionItem[] }) {
+  const fmtINR = (n: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n)
+  const fmtNum = (n: number) => new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(n)
+  const fmtPct = (n: number) => `${n.toFixed(2)}%`
   return (
     <Paper elevation={1} sx={{ p: 2 }}>
       <Typography variant="h6" gutterBottom>Positions</Typography>
@@ -20,11 +23,11 @@ export default function PositionTable({ positions }: { positions: PositionItem[]
           {positions.map((p) => (
             <TableRow key={`${p.exchange}:${p.symbol}`}>
               <TableCell>{p.exchange}:{p.symbol}</TableCell>
-              <TableCell align="right">{p.qty}</TableCell>
-              <TableCell align="right">{p.avg_price.toFixed(2)}</TableCell>
-              <TableCell align="right">{p.last_price.toFixed(2)}</TableCell>
-              <TableCell align="right">{p.pct_today != null ? p.pct_today.toFixed(2) + '%' : '-'}</TableCell>
-              <TableCell align="right">{p.pnl_inr.toFixed(2)}</TableCell>
+              <TableCell align="right">{fmtNum(p.qty)}</TableCell>
+              <TableCell align="right">{fmtINR(p.avg_price)}</TableCell>
+              <TableCell align="right">{fmtINR(p.last_price)}</TableCell>
+              <TableCell align="right">{p.pct_today != null ? fmtPct(p.pct_today) : '-'}</TableCell>
+              <TableCell align="right">{fmtINR(p.pnl_inr)}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -32,4 +35,3 @@ export default function PositionTable({ positions }: { positions: PositionItem[]
     </Paper>
   )
 }
-
