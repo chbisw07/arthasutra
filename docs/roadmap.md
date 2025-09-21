@@ -30,3 +30,8 @@ Tasks / TODOs
 
 - Keep this roadmap in sync with phase docs; adjust acceptance gates as needed.
 
+Deferred (TBD for live-market phase)
+
+- Snapshot table for last/prev closes to remove N+1 queries.
+- Batch/semi-parallel yfinance fetch with a small worker pool.
+- quotes_live table for LTP and session-aware pct_today.

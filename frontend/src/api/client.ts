@@ -38,6 +38,15 @@ export async function createPortfolio(name: string): Promise<Portfolio> {
   return res.data
 }
 
+export async function getPortfolios(): Promise<Portfolio[]> {
+  const res = await api.get('/portfolios')
+  return res.data
+}
+
+export async function deletePortfolio(id: number): Promise<void> {
+  await api.delete(`/portfolios/${id}`)
+}
+
 export async function importHoldingsCSV(portfolioId: number, file: File) {
   const form = new FormData()
   form.append('file', file)
@@ -54,6 +63,11 @@ export async function importEodCSV(file: File) {
   })
 }
 
+export async function importEodYf(symbolTokens: string[], start: string, end: string) {
+  const params = { symbols: symbolTokens.join(','), start, end }
+  await api.post(`/data/prices-eod/yf`, null, { params })
+}
+
 export async function getDashboard(portfolioId: number): Promise<Dashboard> {
   const res = await api.get(`/portfolios/${portfolioId}/dashboard`)
   return res.data
@@ -63,4 +77,3 @@ export async function getPositions(portfolioId: number): Promise<PositionItem[]>
   const res = await api.get(`/portfolios/${portfolioId}/positions`)
   return res.data
 }
-

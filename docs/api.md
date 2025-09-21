@@ -12,6 +12,7 @@ REST Endpoints (high‑level)
 
 - POST /portfolios — create
 - GET /portfolios | /portfolios/{id} — list/read
+- DELETE /portfolios/{id} — delete portfolio (and dependent holdings/lots/configs)
 - POST /portfolios/{id}/import-csv — seed holdings/lots
 - GET /portfolios/{id}/dashboard — summary KPIs + actions
 - GET /portfolios/{id}/positions — tiles (`pct_today`, `pnl_inr`, `score`)

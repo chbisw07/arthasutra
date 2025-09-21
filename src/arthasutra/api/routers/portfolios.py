@@ -12,6 +12,7 @@ from arthasutra.db.models import (
     Holding,
     Lot,
     PriceEOD,
+    ConfigText,
 )
 from arthasutra.db.session import get_session
 from arthasutra.services.analytics import portfolio_equity_and_pnl, compute_position_stats
@@ -46,6 +47,19 @@ class DashboardResponse(BaseModel):
     pnl_inr: float
     positions: list[PositionItem]
     actions: list[dict[str, Any]]
+
+
+@router.get("", response_model=list[Portfolio])
+def list_portfolios(session: Session = Depends(get_session)) -> list[Portfolio]:
+    return session.exec(select(Portfolio).order_by(Portfolio.id.asc())).all()
+
+
+@router.get("/{portfolio_id}", response_model=Portfolio)
+def get_portfolio(portfolio_id: int, session: Session = Depends(get_session)) -> Portfolio:
+    pf = session.get(Portfolio, portfolio_id)
+    if not pf:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    return pf
 
 
 @router.post("", response_model=Portfolio)
@@ -180,3 +194,24 @@ def list_positions(portfolio_id: int, session: Session = Depends(get_session)) -
             )
         )
     return items
+
+
+@router.delete("/{portfolio_id}")
+def delete_portfolio(portfolio_id: int, session: Session = Depends(get_session)) -> dict:
+    pf = session.get(Portfolio, portfolio_id)
+    if not pf:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+
+    # Delete dependent rows: lots -> holdings -> configs
+    holdings = session.exec(select(Holding).where(Holding.portfolio_id == portfolio_id)).all()
+    for h in holdings:
+        lots = session.exec(select(Lot).where(Lot.holding_id == h.id)).all()
+        for lot in lots:
+            session.delete(lot)
+        session.delete(h)
+    cfgs = session.exec(select(ConfigText).where(ConfigText.portfolio_id == portfolio_id)).all()
+    for c in cfgs:
+        session.delete(c)
+    session.delete(pf)
+    session.commit()
+    return {"status": "deleted", "id": portfolio_id}
