@@ -18,20 +18,22 @@ Decisions (final)
 
 Tasks / TODOs
 
-- Create `requirements.txt` with minimal Phase‑01 deps (fastapi, uvicorn, pydantic>=2, sqlalchemy, sqlmodel, pandas, python-dotenv, pytest, httpx, loguru).
-- Add `.env.example` with placeholders: `KITE_API_KEY`, `KITE_API_SECRET`, `KITE_ACCESS_TOKEN` (later), `DATABASE_URL` (default sqlite path).
+- Prefer editable install for dev (avoids PYTHONPATH):
+  - `python -m venv .venv && source .venv/bin/activate`
+  - `pip install -e ".[dev]"`
+- Add `.env` from `.env.example` and set `DATABASE_URL` (defaults to sqlite file).
 - Scaffold backend app with FastAPI, health endpoint, and project layout:
   - `src/arthasutra/api` (routers, deps)
   - `src/arthasutra/db` (models, session)
   - `src/arthasutra/services` (engines, workers)
   - `tests/`
-- Add run scripts:
-  - `PYTHONPATH=src uvicorn arthasutra.api.main:app --reload`
+- Run scripts:
+  - `arthasutra-api` (options: `--host`, `--port`, `--no-reload`)
   - `pytest -q`
 
 Deliverables & Acceptance
 
-- `pip install -r requirements.txt` succeeds.
+- `pip install -e ".[dev]"` succeeds (or `pip install -r requirements.txt`).
 - `uvicorn` starts FastAPI and responds 200 on `/healthz`.
 - `pytest -q` passes initial smoke tests.
 

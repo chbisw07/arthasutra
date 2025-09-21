@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import date
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
@@ -147,4 +146,3 @@ def get_dashboard(portfolio_id: int, session: Session = Depends(get_session)) ->
         positions=positions,
         actions=[],
     )
-

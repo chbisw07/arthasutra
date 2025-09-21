@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -12,7 +14,15 @@ def _get_cors_origins() -> list[str]:
     return [o.strip() for o in origins if o.strip()]
 
 
-app = FastAPI(title="ArthaSutra API", version="0.1.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    create_db_and_tables()
+    yield
+    # Shutdown (no-op for now)
+
+
+app = FastAPI(title="ArthaSutra API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -23,15 +33,9 @@ app.add_middleware(
 )
 
 
-@app.on_event("startup")
-def on_startup() -> None:
-    create_db_and_tables()
-
-
 @app.get("/healthz")
 def healthz() -> dict:
     return {"status": "ok"}
 
 
 app.include_router(portfolios_router, prefix="/portfolios", tags=["portfolios"])
-

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, date
+import datetime as dt
 from typing import Optional
 
 from sqlmodel import SQLModel, Field
@@ -11,7 +11,7 @@ class Portfolio(SQLModel, table=True):
     name: str
     base_ccy: str = Field(default="INR")
     tz: str = Field(default="Asia/Kolkata")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.UTC))
 
 
 class Security(SQLModel, table=True):
@@ -37,7 +37,7 @@ class Lot(SQLModel, table=True):
     holding_id: int = Field(index=True, foreign_key="holding.id")
     qty: float
     price: float
-    date: datetime = Field(default_factory=datetime.utcnow)
+    date: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.UTC))
     account: Optional[str] = None
     tax_status: Optional[str] = None
 
@@ -45,7 +45,7 @@ class Lot(SQLModel, table=True):
 class PriceEOD(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     security_id: int = Field(index=True, foreign_key="security.id")
-    date: date = Field(index=True)
+    date: dt.date = Field(index=True)
     open: float
     high: float
     low: float
@@ -57,5 +57,4 @@ class ConfigText(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     portfolio_id: int = Field(index=True, foreign_key="portfolio.id")
     yaml_text: str
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
-
+    updated_at: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.UTC))
