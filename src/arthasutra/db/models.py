@@ -58,3 +58,12 @@ class ConfigText(SQLModel, table=True):
     portfolio_id: int = Field(index=True, foreign_key="portfolio.id")
     yaml_text: str
     updated_at: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.UTC))
+
+
+class QuoteLive(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    security_id: int = Field(index=True, foreign_key="security.id")
+    ts: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.UTC), index=True)
+    ltp: float
+    source: str = Field(default="yf")
+    updated_at: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.UTC))

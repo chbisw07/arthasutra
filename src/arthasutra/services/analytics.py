@@ -6,6 +6,7 @@ from typing import Optional
 from sqlmodel import Session, select
 
 from arthasutra.db.models import Holding, Security, PriceEOD
+from arthasutra.services.live import get_fresh_ltp, is_market_session
 
 
 @dataclass
@@ -36,9 +37,13 @@ def compute_position_stats(session: Session, holding: Holding) -> Optional[Posit
     if not sec:
         return None
     last, prev = latest_and_prev_close(session, sec.id)
-    last_price = float(last) if last is not None else float(holding.avg_price)
+    # Prefer fresh LTP during session; else fall back to EOD last
+    ltp = get_fresh_ltp(session, sec.id) if is_market_session() else None
+    ref_last = ltp if ltp is not None else last
+    last_price = float(ref_last) if ref_last is not None else float(holding.avg_price)
     pnl = float(holding.qty_total) * (last_price - float(holding.avg_price))
-    pct_today = ((last - prev) / prev * 100.0) if (last is not None and prev) else None
+    base_for_pct = prev if prev is not None else last
+    pct_today = ((last_price - base_for_pct) / base_for_pct * 100.0) if (base_for_pct and last_price is not None) else None
     return PositionStats(
         symbol=sec.symbol,
         exchange=sec.exchange,
@@ -62,4 +67,3 @@ def portfolio_equity_and_pnl(session: Session, portfolio_id: int) -> tuple[float
         total_equity += stats.qty * stats.last_price
         total_pnl += stats.pnl_inr
     return total_equity, total_pnl
-

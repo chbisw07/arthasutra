@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AppBar, Box, Button, Container, Stack, TextField, Toolbar, Typography, Paper, Grid, Alert, LinearProgress, FormControl, InputLabel, Select, MenuItem, Snackbar } from '@mui/material'
+import { AppBar, Box, Button, Container, Stack, TextField, Toolbar, Typography, Paper, Grid, Alert, LinearProgress, FormControl, InputLabel, Select, MenuItem, Snackbar, FormControlLabel, Switch } from '@mui/material'
 import { createPortfolio, deletePortfolio, getDashboard, getPortfolios, getPositions, importEodCSV, importEodYf, importHoldingsCSV, type Dashboard, type Portfolio } from './api/client'
 import PositionTable from './components/PositionTable'
 import ActionInbox from './components/ActionInbox'
@@ -17,6 +17,7 @@ export default function App() {
   const [seedTotal, setSeedTotal] = useState(0)
   const [portfolios, setPortfolios] = useState<Portfolio[]>([])
   const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' | 'warning' }>({ open: false, message: '', severity: 'success' })
+  const [autoRefresh, setAutoRefresh] = useState(false)
 
   const notify = (message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'success') => setSnack({ open: true, message, severity })
   const closeSnack = () => setSnack((s) => ({ ...s, open: false }))
@@ -65,6 +66,13 @@ export default function App() {
       void refresh()
     }
   }, [portfolioId, refresh])
+
+  // Auto refresh positions when enabled
+  useEffect(() => {
+    if (!autoRefresh || !portfolioId) return
+    const id = setInterval(() => { void refresh() }, 30000)
+    return () => clearInterval(id)
+  }, [autoRefresh, portfolioId, refresh])
 
   async function onCreatePortfolio() {
     setLoading(true)
@@ -256,6 +264,7 @@ export default function App() {
             <Button variant="outlined" onClick={refresh} disabled={!canQuery || loading}>Refresh Dashboard</Button>
             <Button variant="outlined" onClick={onSeedDemo} disabled={!canQuery || loading}>Seed Demo Data</Button>
             {loading && <Typography variant="body2">Loading…</Typography>}
+            <FormControlLabel control={<Switch checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />} label="Auto Refresh" />
           </Stack>
           {seeding && (
             <Box sx={{ width: '100%' }}>

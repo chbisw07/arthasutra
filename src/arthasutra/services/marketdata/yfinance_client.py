@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Iterable
+from typing import Iterable, Dict, Tuple
 
 import yfinance as yf
 from sqlmodel import Session, select
 
 from arthasutra.db.models import Security, PriceEOD
+from arthasutra.services.live import upsert_ltp
 
 
 def yahoo_symbol(symbol: str, exchange: str) -> str:
@@ -51,3 +52,34 @@ def fetch_eod_to_db(session: Session, symbol: str, exchange: str, start: date, e
     session.commit()
     return rows
 
+
+def fetch_ltp_batch(session: Session, pairs: Iterable[Tuple[str, str]]) -> Dict[Tuple[str, str], float]:
+    # pairs: list of (symbol, exchange)
+    mapping = {}
+    # Batch via yfinance.download for efficiency
+    tickers = []
+    rev: Dict[str, Tuple[str, str]] = {}
+    for sym, ex in pairs:
+        ys = yahoo_symbol(sym, ex)
+        tickers.append(ys)
+        rev[ys] = (sym, ex)
+    if not tickers:
+        return mapping
+    import yfinance as yf
+
+    try:
+        df = yf.download(tickers=tickers, period="1d", interval="1m", progress=False, group_by='ticker', threads=True)
+    except Exception:
+        return mapping
+
+    # df can be a MultiIndex DataFrame; pick last close for each ticker
+    for ys, pair in rev.items():
+        try:
+            sub = df[ys] if isinstance(df.columns, pd.MultiIndex) else df
+            last_row = sub.dropna().tail(1)
+            if last_row is not None and not last_row.empty:
+                price = float(last_row['Close'].iloc[0])
+                mapping[pair] = price
+        except Exception:
+            continue
+    return mapping

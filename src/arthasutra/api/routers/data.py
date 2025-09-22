@@ -7,7 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, Query
 from sqlmodel import Session, select
 
-from arthasutra.db.models import Security, PriceEOD
+from arthasutra.db.models import Security, PriceEOD, QuoteLive
 from arthasutra.db.session import get_session
 from arthasutra.services.marketdata.yfinance_client import fetch_eod_to_db
 
@@ -65,3 +65,21 @@ def import_prices_yfinance(
             ex, sym = "NSE", token
         total += fetch_eod_to_db(session, sym, ex, start_d, end_d)
     return {"status": "ok", "rows": total}
+
+
+@router.get("/quotes")
+def get_quotes(symbols: str = Query(..., description="Comma-separated list, e.g., NSE:HDFCBANK,BSE:BSE"), session: Session = Depends(get_session)) -> dict:
+    out = {}
+    for token in symbols.split(","):
+        token = token.strip()
+        if ":" in token:
+            ex, sym = token.split(":", 1)
+        else:
+            ex, sym = "NSE", token
+        sec = session.exec(select(Security).where(Security.symbol == sym, Security.exchange == ex)).first()
+        if not sec:
+            out[token] = None
+            continue
+        q = session.exec(select(QuoteLive).where(QuoteLive.security_id == sec.id)).first()
+        out[token] = {"ltp": q.ltp, "ts": q.ts.isoformat()} if q else None
+    return {"quotes": out}

@@ -32,6 +32,12 @@ Tasks / TODOs
     - The CLI limits reload watching to `src/arthasutra` by default to prevent OS file watcher exhaustion; add more watched paths with `--reload-dir` if needed.
   - `pytest -q`
 
+Live quotes (dev)
+
+- The backend starts a yfinance polling job by default (interval `LIVE_POLL_SECONDS`, default 60s) to populate `quotes_live`.
+- Configure env var: `LIVE_POLL_SECONDS=30 arthasutra-api` to tighten cadence.
+- Production: swap to broker WS (Zerodha Kite) in a later phase for real-time LTP.
+
 Frontend (dev)
 
 - Prereqs: Node.js 18+ (or 20+)

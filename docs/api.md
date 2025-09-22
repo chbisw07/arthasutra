@@ -21,6 +21,7 @@ REST Endpoints (high‑level)
 - POST /backtests/run — policy + overlay backtest; body: date range, config
 - GET /alerts | POST /alerts/ack — outstanding alerts + acknowledgements
 - GET /quotes?symbols=... — live quotes (Kite wrapper)
+  - Current implementation uses yfinance polling to populate quotes_live; response includes ltp and timestamp.
 - POST /orders/place — submit order via Zerodha (later phase)
 - POST /orders/cancel — cancel order
 - GET /orders/status/{id} — track status
@@ -29,6 +30,7 @@ Data Import
 
 - POST /data/prices-eod/import-csv — bulk import historical EOD prices (symbol, exchange, date, open, high, low, close, volume)
 - POST /data/prices-eod/yf?symbols=NSE:HDFCBANK,BSE:BSE&start=YYYY-MM-DD&end=YYYY-MM-DD — fetch EOD from Yahoo Finance and persist
+- GET /data/quotes?symbols=NSE:SYM1,NSE:SYM2 — get current LTP (from quotes_live)
 
 WebSocket
 
