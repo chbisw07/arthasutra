@@ -10,4 +10,5 @@ httpx>=0.24.0
 loguru>=0.7.0
 yfinance>=0.2.40
 apscheduler>=3.10.4
+kiteconnect>=5.0.0
 multipart

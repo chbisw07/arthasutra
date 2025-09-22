@@ -52,3 +52,4 @@ Deliverables & Acceptance
 Open Questions
 
 - Pagination and filtering defaults for list endpoints (e.g., positions, alerts).
+- POST /data/kite/tokens — set instrument token mapping for securities; body: { "NSE:SYMB": 12345 }

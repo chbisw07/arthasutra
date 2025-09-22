@@ -6,6 +6,7 @@ from typing import Iterator
 
 from dotenv import load_dotenv
 from sqlmodel import SQLModel, Session, create_engine
+from sqlalchemy import text
 
 
 load_dotenv()
@@ -26,6 +27,21 @@ engine = create_engine(get_database_url(), **_engine_kwargs(get_database_url()))
 
 def create_db_and_tables() -> None:
     SQLModel.metadata.create_all(engine)
+    _run_light_migrations()
+
+
+def _run_light_migrations() -> None:
+    # Lightweight migrations for SQLite during dev: add columns if missing
+    url = get_database_url()
+    if not url.startswith("sqlite"):
+        return
+    with engine.connect() as conn:
+        # security.kite_token
+        info = conn.execute(text("PRAGMA table_info('security')")).fetchall()
+        col_names = {row[1] for row in info}
+        if "kite_token" not in col_names:
+            conn.execute(text("ALTER TABLE security ADD COLUMN kite_token INTEGER"))
+            conn.commit()
 
 
 def get_session() -> Iterator[Session]:
@@ -44,4 +60,3 @@ def session_scope() -> Iterator[Session]:
         raise
     finally:
         session.close()
-

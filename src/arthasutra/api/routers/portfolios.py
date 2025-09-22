@@ -38,6 +38,7 @@ class PositionItem(BaseModel):
     prev_close: float | None = None
     pct_today: float | None = None
     pnl_inr: float
+    price_source: str | None = None
 
 
 class DashboardResponse(BaseModel):
@@ -157,6 +158,7 @@ def get_dashboard(portfolio_id: int, session: Session = Depends(get_session)) ->
                 prev_close=stats.prev_close,
                 pct_today=stats.pct_today,
                 pnl_inr=stats.pnl_inr,
+                price_source=stats.price_source,
             )
         )
 
@@ -191,6 +193,7 @@ def list_positions(portfolio_id: int, session: Session = Depends(get_session)) -
                 prev_close=stats.prev_close,
                 pct_today=stats.pct_today,
                 pnl_inr=stats.pnl_inr,
+                price_source=stats.price_source,
             )
         )
     return items

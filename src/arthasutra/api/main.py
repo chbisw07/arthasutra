@@ -24,41 +24,39 @@ async def lifespan(app: FastAPI):
     # Startup
     create_db_and_tables()
     # Start background polling for live quotes using yfinance (optional)
-    try:
-        from apscheduler.schedulers.background import BackgroundScheduler
+    import os
+    provider = os.getenv("LIVE_PROVIDER", "yf").lower()
+    if provider == "yf":
+        try:
+            from apscheduler.schedulers.background import BackgroundScheduler
+            from sqlalchemy import text
 
-        scheduler = BackgroundScheduler(daemon=True)
+            scheduler = BackgroundScheduler(daemon=True)
 
-        def poll_live_quotes():
-            with session_scope() as s:
-                # unique (symbol, exchange) from current holdings
-                rows = s.exec(
-                    """
-                    SELECT DISTINCT se.symbol, se.exchange, se.id
-                    FROM holding h
-                    JOIN security se ON se.id = h.security_id
-                    """
-                ).all()
-                pairs = [(r[0], r[1]) for r in rows]
-                mapping = fetch_ltp_batch(s, pairs)
-                # upsert
-                for (sym, ex), ltp in mapping.items():
-                    se = s.exec(
-                        "SELECT id FROM security WHERE symbol = :sym AND exchange = :ex",
-                        {"sym": sym, "ex": ex},
-                    ).first()
-                    if se:
-                        upsert_ltp(s, se[0], ltp, source="yf")
+            def poll_live_quotes():
+                with session_scope() as s:
+                    # unique (symbol, exchange) from current holdings
+                    rows = s.exec(text(
+                        """
+                        SELECT DISTINCT se.symbol, se.exchange, se.id
+                        FROM holding h
+                        JOIN security se ON se.id = h.security_id
+                        """
+                    )).fetchall()
+                    pairs = [(r[0], r[1]) for r in rows]
+                    mapping = fetch_ltp_batch(s, pairs)
+                    # upsert
+                    for (sym, ex), ltp in mapping.items():
+                        se = s.exec(text("SELECT id FROM security WHERE symbol = :sym AND exchange = :ex"), {"sym": sym, "ex": ex}).first()
+                        if se:
+                            upsert_ltp(s, se[0], ltp, source="yf")
 
-        import os
-
-        interval = int(os.getenv("LIVE_POLL_SECONDS", "60"))
-        scheduler.add_job(poll_live_quotes, "interval", seconds=interval, id="yf_live_poll", replace_existing=True)
-        scheduler.start()
-        app.state._scheduler = scheduler
-    except Exception:
-        # If APScheduler not available or errors out, continue without live polling
-        pass
+            interval = int(os.getenv("LIVE_POLL_SECONDS", "60"))
+            scheduler.add_job(poll_live_quotes, "interval", seconds=interval, id="yf_live_poll", replace_existing=True)
+            scheduler.start()
+            app.state._scheduler = scheduler
+        except Exception:
+            pass
     yield
     # Shutdown
     sched = getattr(app.state, "_scheduler", None)

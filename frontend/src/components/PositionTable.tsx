@@ -1,5 +1,5 @@
 import React from 'react'
-import { Table, TableBody, TableCell, TableHead, TableRow, Paper, Typography, TableSortLabel } from '@mui/material'
+import { Table, TableBody, TableCell, TableHead, TableRow, Paper, Typography, TableSortLabel, Chip, Stack } from '@mui/material'
 import type { PositionItem } from '../api/client'
 
 type Order = 'asc' | 'desc'
@@ -100,7 +100,14 @@ export default function PositionTable({ positions }: { positions: PositionItem[]
               <TableCell align="right">{fmtNum(p.qty)}</TableCell>
               <TableCell align="right">{fmtINR(p.avg_price)}</TableCell>
               <TableCell align="right">{fmtINR(p.last_price)}</TableCell>
-              <TableCell align="right">{p.pct_today != null ? fmtPct(p.pct_today) : '-'}</TableCell>
+              <TableCell align="right">
+                <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center">
+                  <span>{p.pct_today != null ? fmtPct(p.pct_today) : '-'}</span>
+                  {p.price_source && (
+                    <Chip size="small" label={p.price_source.toUpperCase()} color={p.price_source === 'live' ? 'success' : 'default'} />
+                  )}
+                </Stack>
+              </TableCell>
               <TableCell align="right">{fmtINR(p.pnl_inr)}</TableCell>
             </TableRow>
           ))}

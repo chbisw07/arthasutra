@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 from typing import Iterable, Dict, Tuple
+import pandas as pd
 
 import yfinance as yf
 from sqlmodel import Session, select

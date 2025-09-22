@@ -22,6 +22,7 @@ class Security(SQLModel, table=True):
     sector: Optional[str] = Field(default=None, index=True)
     lot_size: Optional[int] = None
     tick_size: Optional[float] = None
+    kite_token: Optional[int] = Field(default=None, index=True)
 
 
 class Holding(SQLModel, table=True):

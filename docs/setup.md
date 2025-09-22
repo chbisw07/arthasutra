@@ -22,6 +22,8 @@ Tasks / TODOs
   - `python -m venv .venv && source .venv/bin/activate`
   - `pip install -e ".[dev]"`
 - Add `.env` from `.env.example` and set `DATABASE_URL` (defaults to sqlite file).
+  - For live quotes via Zerodha, set: `KITE_API_KEY`, `KITE_ACCESS_TOKEN`.
+  - Choose provider with env var: `LIVE_PROVIDER=kite` (Kite WS) or `LIVE_PROVIDER=yf` (default yfinance poller).
 - Scaffold backend app with FastAPI, health endpoint, and project layout:
   - `src/arthasutra/api` (routers, deps)
   - `src/arthasutra/db` (models, session)

@@ -10,6 +10,7 @@ from sqlmodel import Session, select
 from arthasutra.db.models import Security, PriceEOD, QuoteLive
 from arthasutra.db.session import get_session
 from arthasutra.services.marketdata.yfinance_client import fetch_eod_to_db
+from arthasutra.services.kite_client import maybe_start_kite_ws
 
 
 router = APIRouter()
@@ -83,3 +84,25 @@ def get_quotes(symbols: str = Query(..., description="Comma-separated list, e.g.
         q = session.exec(select(QuoteLive).where(QuoteLive.security_id == sec.id)).first()
         out[token] = {"ltp": q.ltp, "ts": q.ts.isoformat()} if q else None
     return {"quotes": out}
+
+
+@router.post("/kite/tokens")
+def set_kite_tokens(payload: dict[str, int], session: Session = Depends(get_session)) -> dict:
+    # payload: { "NSE:HDFCBANK": 12345, ... }
+    updated = 0
+    for key, token in payload.items():
+        if ":" in key:
+            ex, sym = key.split(":", 1)
+        else:
+            ex, sym = "NSE", key
+        sec = session.exec(select(Security).where(Security.symbol == sym, Security.exchange == ex)).first()
+        if sec:
+            sec.kite_token = int(token)
+            updated += 1
+    session.commit()
+    # Optionally restart/ensure WS subscription
+    try:
+        maybe_start_kite_ws(session)
+    except Exception:
+        pass
+    return {"status": "ok", "updated": updated}

@@ -19,6 +19,7 @@ class PositionStats:
     prev_close: float | None
     pnl_inr: float
     pct_today: float | None
+    price_source: str | None = None
 
 
 def latest_and_prev_close(session: Session, security_id: int) -> tuple[Optional[float], Optional[float]]:
@@ -53,6 +54,7 @@ def compute_position_stats(session: Session, holding: Holding) -> Optional[Posit
         prev_close=prev,
         pnl_inr=pnl,
         pct_today=pct_today,
+        price_source="live" if ltp is not None else "eod",
     )
 
 
