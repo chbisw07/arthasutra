@@ -1,6 +1,6 @@
 # ArthaSutra (backend)
 
-Developer quickstart
+Developer quickstart (v0.1.0.1)
 
 - Create venv and install in editable mode:
   - `python -m venv .venv && source .venv/bin/activate`
@@ -8,6 +8,7 @@ Developer quickstart
 - Run API: `arthasutra-api` (defaults to 127.0.0.1:8000 with reload)
   - To avoid OS file watcher limits, the CLI watches only the package dir by default.
   - Options: `--reload-dir <path>` to add more, `--reload-polling` to force a low‑FD polling watcher, or `--no-reload` to disable.
+  - Show version: `arthasutra-api --version`
 - Test: `pytest -q`
 
 Environment

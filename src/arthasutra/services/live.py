@@ -35,7 +35,7 @@ def upsert_ltp(session: Session, security_id: int, ltp: float, source: str = "yf
         session.add(QuoteLive(security_id=security_id, ltp=float(ltp), ts=now, updated_at=now, source=source))
 
 
-def get_fresh_ltp(session: Session, security_id: int, freshness_seconds: int = 300) -> Optional[float]:
+def get_fresh_ltp(session: Session, security_id: int, freshness_seconds: int = 120) -> Optional[float]:
     row = session.exec(select(QuoteLive).where(QuoteLive.security_id == security_id)).first()
     if not row:
         return None
@@ -43,4 +43,3 @@ def get_fresh_ltp(session: Session, security_id: int, freshness_seconds: int = 3
     if age <= freshness_seconds:
         return float(row.ltp)
     return None
-

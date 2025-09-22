@@ -14,7 +14,7 @@ export type PositionItem = {
   prev_close?: number | null
   pct_today?: number | null
   pnl_inr: number
-  price_source?: 'live' | 'eod' | null
+  price_source?: 'live' | 'snapshot' | 'eod' | null
 }
 
 export type ActionItem = {

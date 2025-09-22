@@ -10,6 +10,8 @@ from arthasutra.db.session import session_scope
 from arthasutra.db.models import Security, Holding
 from arthasutra.services.marketdata.yfinance_client import fetch_ltp_batch
 from arthasutra.services.live import upsert_ltp
+from arthasutra.services.kite_client import maybe_start_kite_ws
+from arthasutra.version import __version__
 
 
 def _get_cors_origins() -> list[str]:
@@ -26,7 +28,15 @@ async def lifespan(app: FastAPI):
     # Start background polling for live quotes using yfinance (optional)
     import os
     provider = os.getenv("LIVE_PROVIDER", "yf").lower()
-    if provider == "yf":
+    if provider == "kite":
+        try:
+            with session_scope() as s:
+                mgr = maybe_start_kite_ws(s)
+                if mgr:
+                    app.state.kite_mgr = mgr
+        except Exception:
+            pass
+    elif provider == "yf":
         try:
             from apscheduler.schedulers.background import BackgroundScheduler
             from sqlalchemy import text
@@ -85,3 +95,8 @@ def healthz() -> dict:
 
 app.include_router(portfolios_router, prefix="/portfolios", tags=["portfolios"])
 app.include_router(data_router, prefix="/data", tags=["data"])
+
+
+@app.get("/version")
+def version() -> dict:
+    return {"version": __version__}

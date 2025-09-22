@@ -98,17 +98,23 @@ export default function PositionTable({ positions }: { positions: PositionItem[]
             <TableRow key={`${p.exchange}:${p.symbol}`}>
               <TableCell>{p.exchange}:{p.symbol}</TableCell>
               <TableCell align="right">{fmtNum(p.qty)}</TableCell>
-              <TableCell align="right">{fmtINR(p.avg_price)}</TableCell>
-              <TableCell align="right">{fmtINR(p.last_price)}</TableCell>
+              <TableCell align="right" className="num">{fmtINR(p.avg_price)}</TableCell>
+              <TableCell align="right" className="num">{fmtINR(p.last_price)}</TableCell>
               <TableCell align="right">
-                <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center">
-                  <span>{p.pct_today != null ? fmtPct(p.pct_today) : '-'}</span>
+                <Stack direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center">
+                  <span className="num">{p.pct_today != null ? fmtPct(p.pct_today) : '-'}</span>
                   {p.price_source && (
-                    <Chip size="small" label={p.price_source.toUpperCase()} color={p.price_source === 'live' ? 'success' : 'default'} />
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      label={p.price_source === 'live' ? 'LIVE' : p.price_source === 'snapshot' ? 'SNAP' : 'EOD'}
+                      color={p.price_source === 'live' ? 'success' : p.price_source === 'snapshot' ? 'info' : 'default'}
+                      sx={{ height: 20, fontSize: 10, px: 0.75 }}
+                    />
                   )}
                 </Stack>
               </TableCell>
-              <TableCell align="right">{fmtINR(p.pnl_inr)}</TableCell>
+              <TableCell align="right" className="num">{fmtINR(p.pnl_inr)}</TableCell>
             </TableRow>
           ))}
         </TableBody>

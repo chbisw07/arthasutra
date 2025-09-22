@@ -5,7 +5,7 @@ from typing import Optional
 
 from sqlmodel import Session, select
 
-from arthasutra.db.models import Holding, Security, PriceEOD
+from arthasutra.db.models import Holding, Security, PriceEOD, QuoteLive
 from arthasutra.services.live import get_fresh_ltp, is_market_session
 
 
@@ -38,9 +38,25 @@ def compute_position_stats(session: Session, holding: Holding) -> Optional[Posit
     if not sec:
         return None
     last, prev = latest_and_prev_close(session, sec.id)
-    # Prefer fresh LTP during session; else fall back to EOD last
-    ltp = get_fresh_ltp(session, sec.id) if is_market_session() else None
-    ref_last = ltp if ltp is not None else last
+
+    # Decide price source: live (fresh during session), snapshot (any quotes_live), else eod
+    price_source: str | None = None
+    ref_last: Optional[float] = None
+    # Try fresh LTP during session
+    fresh_ltp = get_fresh_ltp(session, sec.id) if is_market_session() else None
+    if fresh_ltp is not None:
+        ref_last = fresh_ltp
+        price_source = "live"
+    else:
+        # Use any quotes_live snapshot regardless of session
+        qrow: QuoteLive | None = session.exec(select(QuoteLive).where(QuoteLive.security_id == sec.id)).first()
+        if qrow is not None and qrow.ltp is not None:
+            ref_last = float(qrow.ltp)
+            price_source = "snapshot"
+        else:
+            ref_last = last
+            price_source = "eod"
+
     last_price = float(ref_last) if ref_last is not None else float(holding.avg_price)
     pnl = float(holding.qty_total) * (last_price - float(holding.avg_price))
     base_for_pct = prev if prev is not None else last
@@ -54,7 +70,7 @@ def compute_position_stats(session: Session, holding: Holding) -> Optional[Posit
         prev_close=prev,
         pnl_inr=pnl,
         pct_today=pct_today,
-        price_source="live" if ltp is not None else "eod",
+        price_source=price_source,
     )
 
 

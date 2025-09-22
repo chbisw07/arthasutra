@@ -85,8 +85,8 @@ export default function ActionInbox({ actions, positions }: { actions: ActionIte
               <TableCell><ActionChip a={a} /></TableCell>
               <TableCell>{a.symbol}</TableCell>
               <TableCell>{a.reason}</TableCell>
-              <TableCell align="right">{a.qty ?? '-'}</TableCell>
-              <TableCell align="right">{
+              <TableCell align="right" className="num">{a.qty ?? '-'}</TableCell>
+              <TableCell align="right" className="num">{
                 (() => {
                   const v = pctMap.get(a.symbol)
                   return v === undefined || v === null ? '-' : `${v.toFixed(2)}%`

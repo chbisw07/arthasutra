@@ -5,10 +5,11 @@ import os
 from pathlib import Path
 
 import uvicorn
+from arthasutra.version import __version__
 
 
 def serve() -> None:
-    parser = argparse.ArgumentParser(description="Run ArthaSutra API server (dev)")
+    parser = argparse.ArgumentParser(description=f"ArthaSutra API (v{__version__})")
     parser.add_argument("--host", default=os.getenv("ARTHASUTRA_HOST", "127.0.0.1"))
     parser.add_argument("--port", type=int, default=int(os.getenv("ARTHASUTRA_PORT", "8000")))
     parser.add_argument(
@@ -30,7 +31,12 @@ def serve() -> None:
         help="Force polling reload watcher (avoids OS watch limits)",
     )
     parser.set_defaults(reload=True)
+    parser.add_argument("--version", action="store_true", help="Print version and exit")
     args = parser.parse_args()
+
+    if args.version:
+        print(__version__)
+        return
 
     # Limit reload watching to the package directory by default to avoid hitting OS file limits
     pkg_dir = Path(__file__).resolve().parent  # src/arthasutra
